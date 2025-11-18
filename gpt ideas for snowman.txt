@@ -1,0 +1,23 @@
+add themes (night mode, neon, retro LCD, pixel art)
+
+add a loading animation when Wi-Fi connects
+
+make the clock fade in using the backlight pin
+
+make a snow mode, rain mode, matrix mode, sunrise mode
+
+add a battery icon (if you plan to power the clock with LiPo)
+
+add touch buttons or GPIO buttons for cycling modes
+
+add screen dimming after inactivity
+
+add a settings menu
+
+add alarm or countdown
+
+push temperature/ weather from an API
+
+add a cute character that reacts to time (sleepy at night, awake in morning)
+
+add a pixel art penguin sliding across the screen at random moments
