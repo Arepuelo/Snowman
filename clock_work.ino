@@ -1,6 +1,7 @@
 #include "globals.h"
 #include "time.h"
 
+
 // Time provider (real or debug), implemented in time_core.ino
 bool timeGet(struct tm *timeinfo);
 
@@ -21,13 +22,50 @@ ClockMode mode = MODE_ANALOG;
 // ---------- Drawing helpers ----------
 
 void drawAnalogClock(struct tm *timeinfo) {
-  canvas.fillScreen(ST77XX_BLACK);
+  // ---- THEME SELECTION (simple, inside the function) ----
+  int h = timeinfo->tm_hour;
+
+  uint16_t bg;
+  uint16_t circle;
+  uint16_t text;
+  uint16_t hourCol;
+  uint16_t minCol;
+  uint16_t secCol = ST77XX_RED;  // always red
+
+  if (h >= 5 && h < 12) {
+    // MORNING
+    bg       = 0xA73F;        // light sky
+    circle   = ST77XX_BLACK;
+    text     = ST77XX_WHITE;
+    hourCol  = ST77XX_BLACK;
+    minCol   = ST77XX_BLACK;
+
+  } else if (h >= 12 && h < 18) {
+    // AFTERNOON
+    bg       = 0xFD20;        // warm yellow
+    circle   = ST77XX_BLACK;
+    text     = ST77XX_BLACK;
+    hourCol  = ST77XX_BLACK;
+    minCol   = ST77XX_BLACK;
+
+  } else {
+    // EVENING
+    bg       = 0x280b;        // dark navy
+    circle   = ST77XX_WHITE;
+    text     = 0xfda0;
+    hourCol  = ST77XX_WHITE;
+    minCol   = ST77XX_WHITE;
+  }
+
+  // ---- ORIGINAL CODE BELOW ----
+
+  canvas.fillScreen(bg);
 
   // outline
-  canvas.drawCircle(CENTER_X, CENTER_Y, CLOCK_R, ST77XX_WHITE);
+  canvas.drawCircle(CENTER_X, CENTER_Y, CLOCK_R, circle);
 
   // 12, 3, 6, 9
-  canvas.setTextColor(ST77XX_WHITE);
+  canvas.setTextColor(text);
   canvas.setTextSize(2);
 
   canvas.setCursor(CENTER_X - 10, CENTER_Y - CLOCK_R + 8);
@@ -39,13 +77,13 @@ void drawAnalogClock(struct tm *timeinfo) {
   canvas.setCursor(CENTER_X - CLOCK_R + 10, CENTER_Y - 8);
   canvas.print("9");
 
-  float h = timeinfo->tm_hour % 12;
-  float m = timeinfo->tm_min;
-  float s = timeinfo->tm_sec;
+  float hf = timeinfo->tm_hour % 12;
+  float mf = timeinfo->tm_min;
+  float sf = timeinfo->tm_sec;
 
-  float angleH = (h + m / 60.0) * 30.0; // 360/12
-  float angleM = m * 6.0;               // 360/60
-  float angleS = s * 6.0;
+  float angleH = (hf + mf / 60.0) * 30.0; // 360/12
+  float angleM = mf * 6.0;               // 360/60
+  float angleS = sf * 6.0;
 
   // degrees -> radians, rotate so 0° is at 12 o'clock
   float ah = (angleH - 90.0) * PI / 180.0;
@@ -61,14 +99,38 @@ void drawAnalogClock(struct tm *timeinfo) {
   int sx = CENTER_X + cos(as) * (CLOCK_R * 0.85);
   int sy = CENTER_Y + sin(as) * (CLOCK_R * 0.85);
 
-  // hour & minute: white, second: red
-  canvas.drawLine(CENTER_X, CENTER_Y, hx, hy, ST77XX_WHITE);
-  canvas.drawLine(CENTER_X, CENTER_Y, mx, my, ST77XX_WHITE);
-  canvas.drawLine(CENTER_X, CENTER_Y, sx, sy, ST77XX_RED);
+  // hour & minute: themed, second: themed red
+  canvas.drawLine(CENTER_X, CENTER_Y, hx, hy, hourCol);
+  canvas.drawLine(CENTER_X, CENTER_Y, mx, my, minCol);
+  canvas.drawLine(CENTER_X, CENTER_Y, sx, sy, secCol);
 }
 
 void drawDigitalClock(struct tm *timeinfo) {
-  canvas.fillScreen(ST77XX_BLACK);
+  // ---- THEME SELECTION ----
+  int h = timeinfo->tm_hour;
+
+  uint16_t bg;
+  uint16_t text;
+
+  if (h >= 5 && h < 12) {
+    // MORNING
+    bg   = 0xA73F;        // light sky
+    text = ST77XX_WHITE;
+
+  } else if (h >= 12 && h < 18) {
+    // AFTERNOON
+    bg   = 0xFD20;        // warm yellow
+    text = ST77XX_BLACK;
+
+  } else {
+    // EVENING
+    bg   = 0x280b;        // dark navy
+    text = 0xfda0;
+  }
+
+  // ---- ORIGINAL CODE BELOW ----
+
+  canvas.fillScreen(bg);
 
   // ----- TIME (12-hour format + AM/PM) -----
   int hour12 = timeinfo->tm_hour % 12;
@@ -81,7 +143,7 @@ void drawDigitalClock(struct tm *timeinfo) {
           timeinfo->tm_sec,
           (timeinfo->tm_hour < 12 ? "AM" : "PM"));
 
-  canvas.setTextColor(ST77XX_WHITE);
+  canvas.setTextColor(text);
   canvas.setTextSize(3);
   canvas.setCursor(10, 70);   // moved slightly up
   canvas.print(timeBuf);
@@ -133,6 +195,7 @@ void updateClockLogic() {
     return;
   }
 
+  // ---- tiny change: draw functions now include theme internally ----
   if (mode == MODE_ANALOG) {
     drawAnalogClock(&timeinfo);
   } else {
