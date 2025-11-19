@@ -8,6 +8,12 @@ void updateClockLogic();
 void initWiFi();
 void drawWiFiStatus(const char *l1, const char *l2);
 
+// LEDs & buzzer
+void initLeds();
+void updateLeds();
+void initBuzzer();
+void updateBuzzer();
+
 // Time system (real or debug), implemented in time_core.ino
 void timeBegin(bool startInDebug);
 void timeDebugUpdate();
@@ -16,21 +22,23 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  // True if you want to boot directly in debug mode
+  initScreen();     // TFT + canvas
+  initWiFi();       // connect WiFi + NTP time
+
+  // true = start in debug time mode
+  // false = start using real NTP time
   timeBegin(true);
 
-  initScreen();
-  initWiFi();
   initLeds();
   initBuzzer();
-  initClockLogic();
+  initClockLogic(); // mode, button handling, drawing logic
 
   drawWiFiStatus("Clock ready", "Snowman :)");
 }
 
 void loop() {
-  timeDebugUpdate();  // handle serial time commands
-  updateClockLogic(); // draw analog/digital clock
-  updateLeds();
-  updateBuzzer();
+  timeDebugUpdate();   // handle serial time commands (D/S/J/T...)
+  updateClockLogic();  // draw analog/digital clock
+  updateLeds();        // hour progress bar, etc.
+  updateBuzzer();      // hourly chime
 }

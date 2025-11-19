@@ -2,7 +2,7 @@
 #include "time.h"
 #include "globals.h"
 
-constexpr int LED_PIN   = 12;
+constexpr int LED_PIN   = 18;
 constexpr int LED_COUNT = 8;
 
 bool timeGet(struct tm *out);
@@ -24,33 +24,33 @@ void updateLeds() {
     return;
   }
 
-  int secOfHour = t.tm_min * 60 + t.tm_sec;
-  float pos = (secOfHour / 3600.0f) * LED_COUNT;  // 0–8
-  int full = (int)pos;                           // full LEDs
-  float frac = pos - full;                       // fraction for partial
+  int sec = t.tm_sec;                       // 0–59
+  float pos = (sec / 60.0f) * LED_COUNT;    // map minute progress to 0–8
+  int full = (int)pos;
+  float frac = pos - full;
   if (full >= LED_COUNT) full = LED_COUNT - 1;
 
-  // toggle state once per second
+  // second tick blink
   static int lastSec = -1;
   static bool blink = false;
-  if (t.tm_sec != lastSec) {
-    lastSec = t.tm_sec;
+  if (sec != lastSec) {
+    lastSec = sec;
     blink = !blink;
   }
 
   for (int i = 0; i < LED_COUNT; i++) {
     uint8_t r = 0, g = 0;
 
-    if (i < full) {          // solid completed
-      r = 10; g = 180;
+    if (i < full) {
+      r = 180; g = 110;            // filled LEDs
     }
-    if (i == full) {         // ticking partial LED
-      if (frac == 0) {       // on boundary → solid
-        r = 10; g = 180;
-      } else if (blink) {    // blink state
-        r = 30; g = 255;
+    if (i == full) {
+      if (frac == 0) {            // exact boundary → solid
+        r = 180; g = 110;
+      } else if (blink) {         // ticking partial LED
+        r = 255; g = 125;
       } else {
-        r = 5; g = 40;
+        r = 40; g = 20;
       }
     }
 

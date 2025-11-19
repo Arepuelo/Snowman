@@ -17,9 +17,6 @@ constexpr int CLOCK_R  = 100;
 enum ClockMode { MODE_ANALOG, MODE_DIGITAL };
 ClockMode mode = MODE_ANALOG;
 
-// Button to toggle mode
-constexpr int BUTTON_PIN = 15;
-bool lastButton = HIGH;
 
 // ---------- Drawing helpers ----------
 
@@ -105,32 +102,43 @@ void drawDigitalClock(struct tm *timeinfo) {
 // ---------- Public init / update ----------
 
 void initClockLogic() {
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  mode = MODE_ANALOG;   // start in analog (or whatever you prefer)
+  initButton();         // button lives in button.ino
 }
 
 void updateClockLogic() {
-  // Toggle analog/digital on button press
-  bool b = digitalRead(BUTTON_PIN);
-  if (!b && lastButton) {
+  // --- Button handling (single / double / long press) ---
+  unsigned long nowMillis = millis();
+  updateButton(nowMillis);
+
+  if (buttonSingleClick()) {
+    // Toggle analog/digital mode
     mode = (mode == MODE_ANALOG ? MODE_DIGITAL : MODE_ANALOG);
   }
-  lastButton = b;
 
-  // Get current time from the time provider (real or debug)
+  if (buttonDoubleClick()) {
+    // TODO: cycle Morning / Afternoon / Evening theme
+    // nextTheme();
+  }
+
+  if (buttonLongPress()) {
+    // TODO: toggle AUTO / MANUAL theme mode
+    // toggleThemeSource();
+  }
+
+  // --- Time + drawing (same as before) ---
   struct tm timeinfo;
   if (!timeGet(&timeinfo)) {
     // if no time yet, just return
     return;
   }
 
-  // Draw into canvas
   if (mode == MODE_ANALOG) {
     drawAnalogClock(&timeinfo);
   } else {
     drawDigitalClock(&timeinfo);
   }
 
-  // Push to TFT
   tft.drawRGBBitmap(0, 0, canvas.getBuffer(), SW, SH);
 
   delay(50); // ~20 FPS
