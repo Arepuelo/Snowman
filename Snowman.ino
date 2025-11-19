@@ -16,13 +16,14 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  initScreen();     // TFT + canvas + SPI_MODE3
-  initWiFi();       // connect WiFi + NTP time
-
-  // Turn this to true if you want to boot directly in debug mode
+  // True if you want to boot directly in debug mode
   timeBegin(true);
 
-  initClockLogic(); // button, mode, etc.
+  initScreen();
+  initWiFi();
+  initLeds();
+  initBuzzer();
+  initClockLogic();
 
   drawWiFiStatus("Clock ready", "Snowman :)");
 }
@@ -30,4 +31,6 @@ void setup() {
 void loop() {
   timeDebugUpdate();  // handle serial time commands
   updateClockLogic(); // draw analog/digital clock
+  updateLeds();
+  updateBuzzer();
 }
