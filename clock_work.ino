@@ -1,6 +1,9 @@
 #include "globals.h"
 #include "time.h"
 
+// Time provider (real or debug), implemented in time_core.ino
+bool timeGet(struct tm *timeinfo);
+
 // Screen size
 constexpr int SW = 240;
 constexpr int SH = 240;
@@ -113,9 +116,9 @@ void updateClockLogic() {
   }
   lastButton = b;
 
-  // Get current time from NTP (set by WiFi)
+  // Get current time from the time provider (real or debug)
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
+  if (!timeGet(&timeinfo)) {
     // if no time yet, just return
     return;
   }

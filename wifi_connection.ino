@@ -2,7 +2,7 @@
 #include "time.h"
 #include "globals.h"
 
-// ------------- CONFIG: put your credentials here -------------
+// ------------- CONFIG: credentials -------------
 const char *WIFI_SSID = "Chani";
 const char *WIFI_PASS = "imbecile";
 
