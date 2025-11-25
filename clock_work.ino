@@ -106,58 +106,106 @@ void drawAnalogClock(struct tm *timeinfo) {
 }
 
 void drawDigitalClock(struct tm *timeinfo) {
-  // ---- THEME SELECTION ----
-  int h = timeinfo->tm_hour;
 
-  uint16_t bg;
-  uint16_t text;
+  // --- internal phase + timing state ---
+  enum DigitalPhase { PHASE_TIME, PHASE_DATE };
+  static DigitalPhase phase = PHASE_TIME;
+  static uint32_t lastSwitch = 0;
+  static uint32_t frame = 0;
 
-  if (h >= 5 && h < 12) {
-    // MORNING
-    bg   = 0xA73F;        // light sky
-    text = ST77XX_WHITE;
+  uint32_t now = millis();
+  const uint32_t PERIOD = 15000UL;  // 15 seconds
 
-  } else if (h >= 12 && h < 18) {
-    // AFTERNOON
-    bg   = 0xFD20;        // warm yellow
-    text = ST77XX_BLACK;
-
-  } else {
-    // EVENING
-    bg   = 0x280b;        // dark navy
-    text = 0xfda0;
+  if (now - lastSwitch >= PERIOD) {
+    phase = (phase == PHASE_TIME ? PHASE_DATE : PHASE_TIME);
+    lastSwitch = now;
   }
+  frame++;
 
-  // ---- ORIGINAL CODE BELOW ----
+  // --- theme helper ---
+  auto getTheme = [](int h, uint16_t &bg, uint16_t &fg) {
+    if (h >= 5 && h < 12) {          // morning
+      bg = 0xA73F;
+      fg = ST77XX_WHITE;
+    } 
+    else if (h >= 12 && h < 18) {    // afternoon
+      bg = 0xFD20;
+      fg = ST77XX_BLACK;
+    } 
+    else {                           // evening
+      bg = 0x280B;
+      fg = 0xFDA0;
+    }
+  };
 
+  // --- christmas bottom strip ---
+  auto drawChristmas = [&](uint16_t fg) {
+    const int groundY = 190;
+    const uint16_t SNOW   = 0xFFFF;
+    const uint16_t GREEN  = 0x07E0;
+    const uint16_t YELLOW = 0xFFE0;
+
+    canvas.fillRect(0, groundY, SW, SH - groundY, SNOW);
+
+    const int Xs[3] = {60,120,180};
+    for (int i = 0; i < 3; i++) {
+      int x = Xs[i];
+
+      canvas.fillTriangle(x, groundY - 40,
+                          x - 20, groundY,
+                          x + 20, groundY,
+                          GREEN);
+
+      bool star = ((frame/10 + i) % 2) == 0;
+      if (star) canvas.fillCircle(x, groundY - 46, 3, YELLOW);
+
+      for (int k = 0; k < 4; k++) {
+        bool light = ((frame/6 + i + k) % 3) == 0;
+        if (!light) continue;
+        int lx = x + (k - 1) * 5;
+        int ly = groundY - 30 - (k % 2) * 6;
+        canvas.drawPixel(lx, ly, fg);
+      }
+    }
+  };
+
+  // --- apply theme ---
+  uint16_t bg, fg;
+  getTheme(timeinfo->tm_hour, bg, fg);
   canvas.fillScreen(bg);
 
-  // ----- TIME (12-hour format + AM/PM) -----
-  int hour12 = timeinfo->tm_hour % 12;
-  if (hour12 == 0) hour12 = 12;  // 00 → 12
+  // --- phase: TIME ---
+  if (phase == PHASE_TIME) {
+    int h12 = timeinfo->tm_hour % 12;
+    if (h12 == 0) h12 = 12;
 
-  char timeBuf[20];
-  sprintf(timeBuf, "%02d:%02d:%02d %s",
-          hour12,
-          timeinfo->tm_min,
-          timeinfo->tm_sec,
-          (timeinfo->tm_hour < 12 ? "AM" : "PM"));
+    char buf[20];
+    sprintf(buf, "%02d:%02d %s",
+            h12,
+            timeinfo->tm_min,
+            (timeinfo->tm_hour < 12 ? "AM" : "PM"));
 
-  canvas.setTextColor(text);
-  canvas.setTextSize(3);
-  canvas.setCursor(10, 70);   // moved slightly up
-  canvas.print(timeBuf);
+    canvas.setTextColor(fg);
+    canvas.setTextSize(4);
+    canvas.setCursor(20, 70);
+    canvas.print(buf);
+  } 
+  
+  // --- phase: DATE ---
+  else {
+    char buf[20];
+    sprintf(buf, "%02d/%02d/%02d",
+            timeinfo->tm_mday,
+            timeinfo->tm_mon + 1,
+            timeinfo->tm_year % 100);
 
-  // ----- DATE (dd/mm/yy) -----
-  char dateBuf[20];
-  sprintf(dateBuf, "%02d/%02d/%02d",
-          timeinfo->tm_mday,
-          timeinfo->tm_mon + 1,           // tm_mon = 0–11
-          timeinfo->tm_year % 100);       // tm_year = 1900-based
+    canvas.setTextColor(fg);
+    canvas.setTextSize(4);
+    canvas.setCursor(20, 80);
+    canvas.print(buf);
+  }
 
-  canvas.setTextSize(3);
-  canvas.setCursor(50, 140);  // center-ish
-  canvas.print(dateBuf);
+  drawChristmas(fg);
 }
 
 
